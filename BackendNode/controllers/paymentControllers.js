@@ -2,7 +2,6 @@ const Razorpay = require("razorpay");
 const crypto = require("crypto");
 require("dotenv").config();
 
-//? testing code by arjun
 const RAZORPAY_KEY_ID = "rzp_test_rPVpoELQpw9Mm5";
 const RAZORPAY_KEY_SECRET = "pN79jJ1oP4WrQYc5biDOqXbD";
 
@@ -11,15 +10,21 @@ const razorpay = new Razorpay({
   key_secret: RAZORPAY_KEY_SECRET,
 });
 
+
 const creteOrder = async (req, res) => {
+  const { amount } = req.body; 
+
+  if (!amount) {
+    return res.status(400).json({ error: "Amount is required" });
+  }
   const options = {
-    amount: 49900,
+    amount: amount*100, 
     currency: "INR",
-    receipt: "subscription_001",
+    receipt: `receipt_${Date.now()}`,
     payment_capture: 1,
   };
-  
-console.log(options);
+
+  console.log("📝 Order Options:", options);
 
   try {
     const response = await razorpay.orders.create(options);
@@ -29,13 +34,14 @@ console.log(options);
       amount: response.amount,
     });
   } catch (error) {
-    res.status(500).send(error);
+    console.error("❌ Error Creating Order:", error);
+    res.status(500).send({ error: "Failed to create order" });
   }
 };
 
 const verifyPayment = async (req, res) => {
   const { order_id, payment_id, signature } = req.body;
-
+  
   const generatedSignature = crypto
     .createHmac("sha256", RAZORPAY_KEY_SECRET)
     .update(order_id + "|" + payment_id)
